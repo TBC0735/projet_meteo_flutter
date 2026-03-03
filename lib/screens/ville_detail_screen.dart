@@ -101,7 +101,7 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
               children: [
                 Text(_error!,
                     style: TextStyle(color: textColor)),
-                const SizedBox(height: 12),
+                const SizedBox(height: 13),
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
