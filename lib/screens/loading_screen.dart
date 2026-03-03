@@ -121,7 +121,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 42),
 
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 600),
