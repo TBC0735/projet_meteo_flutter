@@ -1,30 +1,18 @@
 import 'package:dio/dio.dart';
-
+import 'package:retrofit/retrofit.dart';
 import '../Model/page_weather_model.dart';
 
-class WeatherService {
-  final Dio _dio = Dio();
-  final String _apiKey = '57f02a136c29f2b7eeb1ddddb384b047';
+part 'page_weather_service.g.dart';
 
-  Future<WeatherModel> getWeather(String cityName) async {
-    final response = await _dio.get(
-      'https://api.openweathermap.org/data/2.5/weather',
-      queryParameters: {
-        'q': cityName,
-        'appid': _apiKey,
-        'units': 'metric',
-        'lang': 'fr', // description en français
-      },
-    );
+@RestApi(baseUrl: 'https://api.openweathermap.org/data/2.5/')
+abstract class WeatherService {
+  factory WeatherService(Dio dio, {String baseUrl}) = _WeatherService;
 
-    final data = response.data;
-
-    return WeatherModel(
-      temperature: (data['main']['temp'] as num).toDouble(),
-      cityName: data['name'],
-      description: data['weather'][0]['description'],
-      humidity: data['main']['humidity'],
-      windSpeed: (data['wind']['speed'] as num).toDouble(),
-    );
-  }
+  @GET('weather')
+  Future<WeatherModel> getWeather(
+      @Query('q') String cityName,
+      @Query('appid') String apiKey,
+      @Query('units') String units,
+      @Query('lang') String lang,
+      );
 }

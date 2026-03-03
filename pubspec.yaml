@@ -33,14 +33,14 @@ dependencies:
   latlong2: ^0.9.1
   # The following adds the Cupertino Icons font to your application.
   cupertino_icons: ^1.0.8
-  dio: ^4.0.6           # compatible avec retrofit 3.x
-  retrofit: ^3.3.1       # stable avec dio 4.x
+  dio: ^5.4.0
+  retrofit: ^4.0.1
+  retrofit_generator: ^8.0.0
   json_annotation: ^4.8.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  retrofit_generator: ^4.2.0
   build_runner: ^2.4.6
   json_serializable: ^6.5.0 # version stable
   # The "flutter_lints" package below contains a set of recommended lints to

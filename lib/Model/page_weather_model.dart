@@ -18,8 +18,16 @@ class WeatherModel {
     required this.windSpeed,
   });
 
-  factory WeatherModel.fromJson(Map<String, dynamic> json) =>
-      _$WeatherModelFromJson(json);
+  // ✅ fromJson adapté au format OpenWeatherMap
+  factory WeatherModel.fromJson(Map<String, dynamic> json) {
+    return WeatherModel(
+      temperature: (json['main']['temp'] as num).toDouble(),
+      cityName: json['name'] as String,
+      description: json['weather'][0]['description'] as String,
+      humidity: json['main']['humidity'] as int,
+      windSpeed: (json['wind']['speed'] as num).toDouble(),
+    );
+  }
 
   Map<String, dynamic> toJson() => _$WeatherModelToJson(this);
 }

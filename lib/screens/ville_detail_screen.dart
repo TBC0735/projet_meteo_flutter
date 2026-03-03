@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:untitled/theme_notifier.dart';
 import 'package:untitled/services/page_weather_service.dart';
@@ -17,7 +18,8 @@ class VilleDetailScreen extends StatefulWidget {
 }
 
 class _VilleDetailScreenState extends State<VilleDetailScreen> {
-  final WeatherService _service = WeatherService();
+  final WeatherService _service = WeatherService(Dio());
+  final String _apiKey = '57f02a136c29f2b7eeb1ddddb384b047';
   WeatherModel? _weather;
   bool _loading = true;
   String? _error;
@@ -26,26 +28,22 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchWeather(); // premier appel immédiat
-
-    // Rafraîchissement automatique toutes les 30 secondes
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _fetchWeather();
-    });
+    _fetchWeather();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) => _fetchWeather());
   }
 
   @override
   void dispose() {
-    _timer?.cancel(); // arrêter le timer quand on quitte la page
+    _timer?.cancel();
     super.dispose();
   }
 
   Future<void> _fetchWeather() async {
     try {
-      final data = await _service.getWeather(widget.cityName);
+      final weather = await _service.getWeather(widget.cityName, _apiKey, 'metric', 'fr');
       if (!mounted) return;
       setState(() {
-        _weather = data;
+        _weather = weather;
         _loading = false;
       });
     } catch (e) {
@@ -80,8 +78,7 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
     final lon = coords["lon"];
 
     final geoUri = Uri.parse("geo:$lat,$lon?q=$lat,$lon(${widget.cityName})");
-    final webUri = Uri.parse(
-        "https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+    final webUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
 
     if (await canLaunchUrl(geoUri)) {
       await launchUrl(geoUri);
@@ -101,12 +98,9 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
     return ValueListenableBuilder<bool>(
       valueListenable: isDarkModeNotifier,
       builder: (context, isDark, _) {
-        final bgColor =
-        isDark ? const Color(0xFF0D1B2A) : const Color(0xFFF0F4FF);
-        final textColor =
-        isDark ? Colors.white : const Color(0xFF1A1F36);
-        final cardColor =
-        isDark ? Colors.white.withOpacity(0.05) : Colors.white;
+        final bgColor = isDark ? const Color(0xFF0D1B2A) : const Color(0xFFF0F4FF);
+        final textColor = isDark ? Colors.white : const Color(0xFF1A1F36);
+        final cardColor = isDark ? Colors.white.withOpacity(0.05) : Colors.white;
 
         final double lat = double.parse(_coordinates()["lat"]!);
         final double lon = double.parse(_coordinates()["lon"]!);
@@ -118,7 +112,6 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
             elevation: 0,
             iconTheme: IconThemeData(color: textColor),
             title: Text(widget.cityName, style: TextStyle(color: textColor)),
-            // ✅ Indicateur de rafraîchissement dans l'appBar
             actions: [
               Padding(
                 padding: const EdgeInsets.only(right: 16),
@@ -126,38 +119,36 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
                   children: [
                     Icon(Icons.sync, color: textColor.withOpacity(0.5), size: 14),
                     const SizedBox(width: 4),
-                    Text(
-                      "30s",
-                      style: TextStyle(
-                        color: textColor.withOpacity(0.5),
-                        fontSize: 12,
-                      ),
-                    ),
+                    Text("5s", style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 12)),
                   ],
                 ),
               ),
             ],
           ),
           body: _loading
-              ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFFF8C00)))
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF8C00)))
               : _error != null
               ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(_error!, style: TextStyle(color: textColor)),
-                const SizedBox(height: 13),
-                ElevatedButton(
+                Icon(Icons.wifi_off_rounded, color: textColor.withOpacity(0.4), size: 60),
+                const SizedBox(height: 16),
+                Text(_error!, style: TextStyle(color: textColor, fontSize: 16)),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
                   onPressed: () {
-                    setState(() {
-                      _loading = true;
-                      _error = null;
-                    });
+                    setState(() { _loading = true; _error = null; });
                     _fetchWeather();
                   },
-                  child: const Text("Réessayer"),
-                )
+                  icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                  label: const Text("Réessayer", style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF8C00),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
               ],
             ),
           )
@@ -166,55 +157,34 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Carte météo ──────────────────────────────
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
                   child: Column(
                     children: [
                       Text(
                         "${_weather!.temperature.toStringAsFixed(1)}°C",
-                        style: const TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFFF8C00),
-                        ),
+                        style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Color(0xFFFF8C00)),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        _weather!.description,
-                        style: TextStyle(
-                            color: textColor, fontSize: 18),
-                      ),
+                      Text(_weather!.description, style: TextStyle(color: textColor, fontSize: 18)),
                       const SizedBox(height: 20),
                       Row(
-                        mainAxisAlignment:
-                        MainAxisAlignment.spaceAround,
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           Column(
                             children: [
-                              const Icon(Icons.water_drop,
-                                  color: Color(0xFFFF8C00)),
+                              const Icon(Icons.water_drop, color: Color(0xFFFF8C00)),
                               const SizedBox(height: 6),
-                              Text(
-                                "Humidité : ${_weather!.humidity}%",
-                                style: TextStyle(color: textColor),
-                              ),
+                              Text("Humidité : ${_weather!.humidity}%", style: TextStyle(color: textColor)),
                             ],
                           ),
                           Column(
                             children: [
-                              const Icon(Icons.air,
-                                  color: Color(0xFFFF8C00)),
+                              const Icon(Icons.air, color: Color(0xFFFF8C00)),
                               const SizedBox(height: 6),
-                              Text(
-                                "Vent : ${_weather!.windSpeed} m/s",
-                                style: TextStyle(color: textColor),
-                              ),
+                              Text("Vent : ${_weather!.windSpeed} m/s", style: TextStyle(color: textColor)),
                             ],
                           ),
                         ],
@@ -225,61 +195,35 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
 
                 const SizedBox(height: 28),
 
-                // ── Section Localisation ─────────────────────
                 Row(
                   children: [
-                    const Icon(Icons.location_on,
-                        color: Color(0xFFFF8C00)),
+                    const Icon(Icons.location_on, color: Color(0xFFFF8C00)),
                     const SizedBox(width: 8),
-                    Text(
-                      "Localisation",
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text("Localisation", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  "Lat: $lat — Lon: $lon",
-                  style: TextStyle(
-                    color: textColor.withOpacity(0.55),
-                    fontSize: 13,
-                  ),
-                ),
+                Text("Lat: $lat — Lon: $lon", style: TextStyle(color: textColor.withOpacity(0.55), fontSize: 13)),
 
                 const SizedBox(height: 14),
 
-                // ── Carte OpenStreetMap ──────────────────────
                 ClipRRect(
                   borderRadius: BorderRadius.circular(18),
                   child: SizedBox(
                     height: 300,
                     child: FlutterMap(
-                      options: MapOptions(
-                        initialCenter: LatLng(lat, lon),
-                        initialZoom: 11,
-                      ),
+                      options: MapOptions(initialCenter: LatLng(lat, lon), initialZoom: 11),
                       children: [
                         TileLayer(
-                          urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName:
-                          'com.example.untitled',
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.example.untitled',
                         ),
                         MarkerLayer(
                           markers: [
                             Marker(
                               point: LatLng(lat, lon),
-                              width: 48,
-                              height: 48,
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Colors.red,
-                                size: 40,
-                              ),
+                              width: 48, height: 48,
+                              child: const Icon(Icons.location_on, color: Colors.red, size: 40),
                             ),
                           ],
                         ),
@@ -290,24 +234,16 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
 
                 const SizedBox(height: 16),
 
-                // ── Bouton ouvrir Google Maps ────────────────
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: _openMap,
-                    icon: const Icon(Icons.open_in_new,
-                        color: Colors.white),
-                    label: const Text(
-                      "Ouvrir dans Google Maps",
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    icon: const Icon(Icons.open_in_new, color: Colors.white),
+                    label: const Text("Ouvrir dans Google Maps", style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF8C00),
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
                 ),
