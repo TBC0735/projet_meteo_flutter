@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/theme_notifier.dart';
-import 'package:untitled/services/weather_service.dart';
-import 'package:untitled/models/weather_model.dart';
+import 'package:untitled/services/page_weather_service.dart';
+import 'package:untitled/Model/page_weather_model.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 
 class VilleDetailScreen extends StatefulWidget {
   final String cityName;

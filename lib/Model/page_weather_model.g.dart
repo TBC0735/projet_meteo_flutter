@@ -1,13 +1,16 @@
-part of 'weather_model.dart';
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
-import 'package:untitled/Models/page_weather_model.dart';
+part of 'page_weather_model.dart';
 
-WeatherModel _$WeatherModelFromJson(Map<String, dynamic> json) =>
-    WeatherModel(
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+WeatherModel _$WeatherModelFromJson(Map<String, dynamic> json) => WeatherModel(
       temperature: (json['temperature'] as num).toDouble(),
       cityName: json['cityName'] as String,
       description: json['description'] as String,
-      humidity: json['humidity'] as int,
+      humidity: (json['humidity'] as num).toInt(),
       windSpeed: (json['windSpeed'] as num).toDouble(),
     );
 

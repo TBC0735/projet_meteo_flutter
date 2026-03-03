@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/screens/loading_screen.dart';
 import 'package:untitled/screens/ville_detail_screen.dart';
-import 'package:untitled/services/weather_service.dart';
-import 'package:untitled/models/weather_model.dart';
+import 'package:untitled/services/page_weather_service.dart';
 import 'package:untitled/screens/home_screen.dart';
 import 'package:untitled/theme_notifier.dart';
+
+import '../Model/page_weather_model.dart';
 
 class PageMete extends StatefulWidget {
   const PageMete({super.key});
