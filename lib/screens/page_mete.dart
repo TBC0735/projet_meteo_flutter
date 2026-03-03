@@ -4,7 +4,7 @@ import 'package:untitled/screens/ville_detail_screen.dart';
 import 'package:untitled/services/page_weather_service.dart';
 import 'package:untitled/screens/home_screen.dart';
 import 'package:untitled/theme_notifier.dart';
-
+import 'dart:async'; // ✅ Ajout
 import '../Model/page_weather_model.dart';
 
 class PageMete extends StatefulWidget {
@@ -19,6 +19,7 @@ class _PageMeteState extends State<PageMete> with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _fadeAnim;
   late Animation<double> _pulseAnim;
+  Timer? _timer; // ✅ Ajout
 
   final WeatherService _service = WeatherService();
 
@@ -27,6 +28,7 @@ class _PageMeteState extends State<PageMete> with TickerProviderStateMixin {
     {"name": "Pointe-Noire, Congo", "icon": Icons.add_business_outlined, "emoji": "🌊"},
     {"name": "Banjul", "icon": Icons.language_outlined, "emoji": "🌍"},
     {"name": "Ouagadougou", "icon": Icons.business_outlined, "emoji": "🏙️"},
+    {"name": "Trois-Rivières", "icon": Icons.water_outlined, "emoji": "🍁"},
   ];
 
   Map<String, WeatherModel?> _weatherData = {};
@@ -40,7 +42,13 @@ class _PageMeteState extends State<PageMete> with TickerProviderStateMixin {
     _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat(reverse: true);
     _fadeAnim = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
     _pulseAnim = Tween<double>(begin: 0.85, end: 1.0).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
-    _fetchAllWeather();
+
+    _fetchAllWeather(); // premier appel immédiat
+
+    // ✅ Rafraîchissement automatique toutes les 5 secondes pour les 5 villes
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _fetchAllWeather();
+    });
   }
 
   Future<void> _fetchAllWeather() async {
@@ -59,6 +67,7 @@ class _PageMeteState extends State<PageMete> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _timer?.cancel(); // ✅ Arrêter le timer quand on quitte la page
     _fadeController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -95,7 +104,6 @@ class _PageMeteState extends State<PageMete> with TickerProviderStateMixin {
             ),
             child: Stack(
               children: [
-
                 SafeArea(
                   child: FadeTransition(
                     opacity: _fadeAnim,
@@ -127,7 +135,16 @@ class _PageMeteState extends State<PageMete> with TickerProviderStateMixin {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text("Mes villes", style: TextStyle(color: textColor, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.3)),
-                                  Text("${_villes.length} destinations", style: TextStyle(color: subTextColor, fontSize: 13)),
+                                  // ✅ Indicateur de rafraîchissement
+                                  Row(
+                                    children: [
+                                      Text("${_villes.length} destinations", style: TextStyle(color: subTextColor, fontSize: 13)),
+                                      const SizedBox(width: 8),
+                                      Icon(Icons.sync, color: subTextColor, size: 12),
+                                      const SizedBox(width: 2),
+                                      Text("5s", style: TextStyle(color: subTextColor, fontSize: 11)),
+                                    ],
+                                  ),
                                 ],
                               ),
                               const Spacer(),
@@ -236,23 +253,23 @@ class _PageMeteState extends State<PageMete> with TickerProviderStateMixin {
     final WeatherModel? weather = _weatherData[ville];
 
     return GestureDetector(
-      onTap: () {
-        if (!isLoading && weather != null) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => VilleDetailScreen(cityName: ville)));
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: cardColor,
-          border: Border.all(color: cardBorder),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.06), blurRadius: 20, offset: const Offset(0, 4))],
-        ),
-        child: Row(
-          children: [
-            Container(
+        onTap: () {
+          if (!isLoading && weather != null) {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => VilleDetailScreen(cityName: ville)));
+          }
+        },
+        child: Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: cardColor,
+              border: Border.all(color: cardBorder),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.06), blurRadius: 20, offset: const Offset(0, 4))],
+            ),
+            child: Row(
+              children: [
+              Container(
               width: 52, height: 52,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -277,42 +294,44 @@ class _PageMeteState extends State<PageMete> with TickerProviderStateMixin {
               ),
             ),
             if (isLoading)
-              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: const Color(0xFFFF8C00).withOpacity(0.7), strokeWidth: 2))
-            else if (error != null)
-              GestureDetector(
-                onTap: () async {
-                  setState(() { _loadingMap[ville] = true; _errorMap[ville] = null; });
-                  try {
-                    final w = await _service.getWeather(ville);
-                    if (!mounted) return;
-                    setState(() { _weatherData[ville] = w; _loadingMap[ville] = false; });
-                  } catch (e) {
-                    if (!mounted) return;
-                    setState(() { _errorMap[ville] = "Erreur"; _loadingMap[ville] = false; });
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.red.withOpacity(0.12)),
-                  child: const Icon(Icons.refresh_rounded, color: Colors.redAccent, size: 18),
-                ),
-              )
-            else if (weather != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: _tempColor(weather.temperature).withOpacity(0.12),
-                    border: Border.all(color: _tempColor(weather.temperature).withOpacity(0.3)),
-                  ),
-                  child: Text("${weather.temperature.toStringAsFixed(0)}°",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _tempColor(weather.temperature))),
-                ),
-            const SizedBox(width: 10),
-            Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2), size: 20),
-          ],
+        SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: const Color(0xFFFF8C00).withOpacity(0.7), strokeWidth: 2))
+    else if (error != null)
+    GestureDetector(
+    onTap: () async {
+    setState(() { _loadingMap[ville] = true; _errorMap[ville] = null; });
+    try {
+    final w = await _service.getWeather(ville);
+    if (!mounted) return;
+    setState(() { _weatherData[ville] = w; _loadingMap[ville] = false; });
+    } catch (e) {
+    if (!mounted) return;
+    setState(() { _errorMap[ville] = "Erreur"; _loadingMap[ville] = false; });
+    }
+    },
+    child: Container(
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.red.withOpacity(0.12)),
+    child: const Icon(Icons.refresh_rounded, color: Colors.redAccent, size: 18),
+    ),
+    )
+    else if (weather != null)
+    Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(12),
+    color: _tempColor(weather.temperature).withOpacity(0.12),
+    border: Border.all(color: _tempColor(weather.temperature).withOpacity(0.3)),
+    ),
+    child: Text("${weather.temperature.toStringAsFixed(0)}°",
+    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _tempColor(weather.temperature))),
+    ),
+    const SizedBox(width: 10),
+        Icon(Icons.chevron_right_rounded,
+        color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+        size: 20),
+              ],
+            ),
         ),
-      ),
     );
   }
 }

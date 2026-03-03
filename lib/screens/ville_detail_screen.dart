@@ -5,6 +5,7 @@ import 'package:untitled/Model/page_weather_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:async';
 
 class VilleDetailScreen extends StatefulWidget {
   final String cityName;
@@ -20,11 +21,23 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
   WeatherModel? _weather;
   bool _loading = true;
   String? _error;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _fetchWeather();
+    _fetchWeather(); // premier appel immédiat
+
+    // Rafraîchissement automatique toutes les 30 secondes
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _fetchWeather();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // arrêter le timer quand on quitte la page
+    super.dispose();
   }
 
   Future<void> _fetchWeather() async {
@@ -54,6 +67,8 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
         return {"lat": "14.7167", "lon": "-17.4677"};
       case "Pointe-Noire, Congo":
         return {"lat": "-4.7761", "lon": "11.8635"};
+      case "Trois-Rivières":
+        return {"lat": "46.3432", "lon": "-72.5453"};
       default:
         return {"lat": "0", "lon": "0"};
     }
@@ -64,9 +79,7 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
     final lat = coords["lat"];
     final lon = coords["lon"];
 
-    // Essaie d'abord l'app Google Maps native
     final geoUri = Uri.parse("geo:$lat,$lon?q=$lat,$lon(${widget.cityName})");
-    // Fallback vers le navigateur
     final webUri = Uri.parse(
         "https://www.google.com/maps/search/?api=1&query=$lat,$lon");
 
@@ -105,6 +118,25 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
             elevation: 0,
             iconTheme: IconThemeData(color: textColor),
             title: Text(widget.cityName, style: TextStyle(color: textColor)),
+            // ✅ Indicateur de rafraîchissement dans l'appBar
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Row(
+                  children: [
+                    Icon(Icons.sync, color: textColor.withOpacity(0.5), size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      "30s",
+                      style: TextStyle(
+                        color: textColor.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           body: _loading
               ? const Center(
@@ -155,8 +187,8 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         _weather!.description,
-                        style:
-                        TextStyle(color: textColor, fontSize: 18),
+                        style: TextStyle(
+                            color: textColor, fontSize: 18),
                       ),
                       const SizedBox(height: 20),
                       Row(
@@ -234,7 +266,8 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
                         TileLayer(
                           urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.example.untitled',
+                          userAgentPackageName:
+                          'com.example.untitled',
                         ),
                         MarkerLayer(
                           markers: [
