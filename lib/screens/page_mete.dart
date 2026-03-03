@@ -95,25 +95,7 @@ class _PageMeteState extends State<PageMete> with TickerProviderStateMixin {
             ),
             child: Stack(
               children: [
-                Positioned(
-                  top: -60, right: -40,
-                  child: AnimatedBuilder(
-                    animation: _pulseAnim,
-                    builder: (_, __) => Transform.scale(
-                      scale: _pulseAnim.value,
-                      child: Container(
-                        width: 240, height: 240,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(colors: [
-                            const Color(0xFFFF8C00).withOpacity(isDark ? 0.12 : 0.2),
-                            Colors.transparent,
-                          ]),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+
                 SafeArea(
                   child: FadeTransition(
                     opacity: _fadeAnim,

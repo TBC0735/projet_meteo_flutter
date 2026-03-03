@@ -3,7 +3,8 @@ import 'package:untitled/theme_notifier.dart';
 import 'package:untitled/services/page_weather_service.dart';
 import 'package:untitled/Model/page_weather_model.dart';
 import 'package:url_launcher/url_launcher.dart';
-
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class VilleDetailScreen extends StatefulWidget {
   final String cityName;
@@ -43,7 +44,6 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
     }
   }
 
-  // 📍 Coordonnées des villes
   Map<String, String> _coordinates() {
     switch (widget.cityName) {
       case "Banjul":
@@ -61,12 +61,25 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
 
   Future<void> _openMap() async {
     final coords = _coordinates();
-    final url =
-        "https://www.google.com/maps/search/?api=1&query=${coords["lat"]},${coords["lon"]}";
-    final uri = Uri.parse(url);
+    final lat = coords["lat"];
+    final lon = coords["lon"];
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    // Essaie d'abord l'app Google Maps native
+    final geoUri = Uri.parse("geo:$lat,$lon?q=$lat,$lon(${widget.cityName})");
+    // Fallback vers le navigateur
+    final webUri = Uri.parse(
+        "https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+
+    if (await canLaunchUrl(geoUri)) {
+      await launchUrl(geoUri);
+    } else if (await canLaunchUrl(webUri)) {
+      await launchUrl(webUri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Impossible d'ouvrir la carte")),
+        );
+      }
     }
   }
 
@@ -82,26 +95,26 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
         final cardColor =
         isDark ? Colors.white.withOpacity(0.05) : Colors.white;
 
+        final double lat = double.parse(_coordinates()["lat"]!);
+        final double lon = double.parse(_coordinates()["lon"]!);
+
         return Scaffold(
           backgroundColor: bgColor,
           appBar: AppBar(
             backgroundColor: bgColor,
             elevation: 0,
             iconTheme: IconThemeData(color: textColor),
-            title: Text(widget.cityName,
-                style: TextStyle(color: textColor)),
+            title: Text(widget.cityName, style: TextStyle(color: textColor)),
           ),
           body: _loading
               ? const Center(
-              child: CircularProgressIndicator(
-                  color: Color(0xFFFF8C00)))
+              child: CircularProgressIndicator(color: Color(0xFFFF8C00)))
               : _error != null
               ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(_error!,
-                    style: TextStyle(color: textColor)),
+                Text(_error!, style: TextStyle(color: textColor)),
                 const SizedBox(height: 13),
                 ElevatedButton(
                   onPressed: () {
@@ -116,10 +129,12 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
               ],
             ),
           )
-              : Padding(
+              : SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ── Carte météo ──────────────────────────────
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -140,9 +155,8 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         _weather!.description,
-                        style: TextStyle(
-                            color: textColor,
-                            fontSize: 18),
+                        style:
+                        TextStyle(color: textColor, fontSize: 18),
                       ),
                       const SizedBox(height: 20),
                       Row(
@@ -152,23 +166,23 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
                           Column(
                             children: [
                               const Icon(Icons.water_drop,
-                                  color: Colors.blue),
+                                  color: Color(0xFFFF8C00)),
                               const SizedBox(height: 6),
                               Text(
-                                  "Humidité : ${_weather!.humidity}%",
-                                  style: TextStyle(
-                                      color: textColor)),
+                                "Humidité : ${_weather!.humidity}%",
+                                style: TextStyle(color: textColor),
+                              ),
                             ],
                           ),
                           Column(
                             children: [
                               const Icon(Icons.air,
-                                  color: Colors.grey),
+                                  color: Color(0xFFFF8C00)),
                               const SizedBox(height: 6),
                               Text(
-                                  "Vent : ${_weather!.windSpeed} m/s",
-                                  style: TextStyle(
-                                      color: textColor)),
+                                "Vent : ${_weather!.windSpeed} m/s",
+                                style: TextStyle(color: textColor),
+                              ),
                             ],
                           ),
                         ],
@@ -177,21 +191,90 @@ class _VilleDetailScreenState extends State<VilleDetailScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 28),
 
-                ElevatedButton.icon(
-                  onPressed: _openMap,
-                  icon: const Icon(Icons.map),
-                  label:
-                  const Text("Voir sur Google Maps"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                    const Color(0xFFFF8C00),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 14, horizontal: 24),
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                      BorderRadius.circular(16),
+                // ── Section Localisation ─────────────────────
+                Row(
+                  children: [
+                    const Icon(Icons.location_on,
+                        color: Color(0xFFFF8C00)),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Localisation",
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "Lat: $lat — Lon: $lon",
+                  style: TextStyle(
+                    color: textColor.withOpacity(0.55),
+                    fontSize: 13,
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // ── Carte OpenStreetMap ──────────────────────
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: SizedBox(
+                    height: 300,
+                    child: FlutterMap(
+                      options: MapOptions(
+                        initialCenter: LatLng(lat, lon),
+                        initialZoom: 11,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.example.untitled',
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: LatLng(lat, lon),
+                              width: 48,
+                              height: 48,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── Bouton ouvrir Google Maps ────────────────
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _openMap,
+                    icon: const Icon(Icons.open_in_new,
+                        color: Colors.white),
+                    label: const Text(
+                      "Ouvrir dans Google Maps",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF8C00),
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                 ),

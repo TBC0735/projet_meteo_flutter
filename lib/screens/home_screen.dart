@@ -61,26 +61,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             child: Stack(
               children: [
-                // Cercles décoratifs
-                Positioned(
-                  top: -80, right: -60,
-                  child: AnimatedBuilder(
-                    animation: _pulseAnim,
-                    builder: (_, __) => Transform.scale(
-                      scale: _pulseAnim.value,
-                      child: Container(
-                        width: 280, height: 280,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(colors: [
-                            const Color(0xFFFF8C00).withOpacity(isDark ? 0.18 : 0.25),
-                            Colors.transparent,
-                          ]),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+
+
                 Positioned(
                   bottom: 100, left: -80,
                   child: AnimatedBuilder(
